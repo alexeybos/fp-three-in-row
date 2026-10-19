@@ -206,22 +206,7 @@ public final class Game {
         BoardState afterRemoval = removeMatches(state, matches);
         BoardState afterFill = fillEmptySpaces(afterRemoval);
 
-        return processCascade(afterFill);
-    }
-
-    // компактнее не получается.
-    public static BoardState processCascade(BoardState state) {
-        List<Match> matches = findMatches(state.board());
-        if (matches.isEmpty()) {
-            return state;
-        }
-
-        BoardState bs = pipeln(
-                removeMatches(state, matches),
-                Game::fillEmptySpaces
-        );
-
-        return processCascade(bs);
+        return processCascade_old(afterFill);
     }
 
     /*public static BoardState initializeGame() {
@@ -278,6 +263,21 @@ public final class Game {
 
 
         //return processCascade(fillEmptySpaces();
+    }
+
+    // компактнее не получается.
+    public static BoardState processCascade(BoardState state) {
+        List<Match> matches = findMatches(state.board());
+        if (matches.isEmpty()) {
+            return state;
+        }
+
+        BoardState bs = pipeln(
+                removeMatches(state, matches),
+                Game::fillEmptySpaces
+        );
+
+        return processCascade(bs);
     }
 
 }
