@@ -1,6 +1,7 @@
 package org.skillsmart.game;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 public final class Game {
 
@@ -207,7 +208,39 @@ public final class Game {
         return processCascade(afterFill);
     }
 
-    public static BoardState initializeGame() {
+    /*public static BoardState initializeGame() {
         return processCascade(fillEmptySpaces(new BoardState(new Board(8), 0)));
+    }*/
+
+    public static BoardState initializeGame() {
+        // честно говоря, немного "подзавис" над мыслью как сделать пайплайн в Java:
+        // 1. Builder здесь вообще никаким боком - это паттерн создания объектов, так что fillEmptySpaces и processCascade сюда ну никак не зайдут.
+        // 2. Через перенос fillEmptySpaces и processCascade в BoardState - ну тут как бы мы вроде от всего этого уходим. никакого ооп...
+        // Да и вообще, эти методы никак к классу BoardState не относятся.
+        // Операций типа |> тут нет. Сделал нижеследующий в комментах вариант (чисто чтобы было видно, что читал материал,
+        // т.к. вариант с промежуточными переменными, все же лучше, чем со вложенными скобками)
+
+        /*
+        BoardState bs = new BoardState(new Board(8), 0);
+        bs = Game.fillEmptySpaces(bs);
+        return processCascade(bs);*/
+
+        //ну а рабочий вариант сделал с эмуляцией пайплайна:
+        return pipeln(new BoardState(new Board(8), 0),
+                Game::fillEmptySpaces,
+                Game::processCascade
+        );
+
+
+        //return processCascade(fillEmptySpaces();
+    }
+
+    @SafeVarargs
+    private static <T> T pipeln(T value, UnaryOperator<T>... steps) {
+        T result = value;
+        for (UnaryOperator<T> step : steps) {
+            result = step.apply(result);
+        }
+        return result;
     }
 }
