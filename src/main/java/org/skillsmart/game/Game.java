@@ -1,6 +1,7 @@
 package org.skillsmart.game;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 public final class Game {
@@ -196,7 +197,7 @@ public final class Game {
         return new BoardState(Board.of(size, newCells), currentState.score());
     }
 
-    public static BoardState processCascade(BoardState state) {
+    public static BoardState processCascade_old(BoardState state) {
         List<Match> matches = findMatches(state.board());
         if (matches.isEmpty()) {
             return state;
@@ -206,6 +207,21 @@ public final class Game {
         BoardState afterFill = fillEmptySpaces(afterRemoval);
 
         return processCascade(afterFill);
+    }
+
+    // компактнее не получается.
+    public static BoardState processCascade(BoardState state) {
+        List<Match> matches = findMatches(state.board());
+        if (matches.isEmpty()) {
+            return state;
+        }
+
+        BoardState bs = pipeln(
+                removeMatches(state, matches),
+                Game::fillEmptySpaces
+        );
+
+        return processCascade(bs);
     }
 
     /*public static BoardState initializeGame() {
@@ -243,4 +259,25 @@ public final class Game {
         }
         return result;
     }
+
+    // попробовал реализовать pipe как в примере в курсе, но дальнейшая реализация initializeGame2
+    // получается не очень красивой. Опять куча скобок и никакого праздника...
+    // Хотя у предыдущей реализации через pipeln тоже серьезное ограничение, я могу обработать только один тип для всего
+    // набора функций, менять его нельзя...
+    public static <TIn, TOut> TOut pipe(TIn input, Function<TIn, TOut> func) {
+        return func.apply(input);
+    }
+
+    public static BoardState initializeGame2() {
+
+        //ну а рабочий вариант сделал с эмуляцией пайплайна:
+        return pipe(new BoardState(new Board(8), 0),
+                state -> pipe(fillEmptySpaces(state),
+                Game::processCascade)
+        );
+
+
+        //return processCascade(fillEmptySpaces();
+    }
+
 }
