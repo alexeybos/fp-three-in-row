@@ -13,7 +13,7 @@ public class Main {
 
         BoardState bs = Game.initializeGame();
         while (true) {
-            Game.draw(bs.board());
+            Game.draw(bs);
             bs = Game.readMove(bs);
         }
     }

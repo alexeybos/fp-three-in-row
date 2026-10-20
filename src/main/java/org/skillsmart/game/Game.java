@@ -12,8 +12,12 @@ public final class Game {
     private static final char[] SYMBOLS = { 'A', 'B', 'C', 'D', 'E', 'F' };
     private static final Scanner SCANNER = new Scanner(System.in);
 
-    public static void draw(Board board) {
-        int size = board.size();
+    public static BoardState draw(BoardState bs) {
+        return draw(bs, false);
+    }
+
+    public static BoardState draw(BoardState bs, boolean ask) {
+        int size = bs.board().size();
 
         // шапка с номерами столбцов
         System.out.print("   ");
@@ -25,11 +29,16 @@ public final class Game {
         for (int i = 0; i < size; i++) {
             System.out.print(i + " ");
             for (int j = 0; j < size; j++) {
-                System.out.print(board.get(i, j).symbol() + " ");
+                System.out.print(bs.board().get(i, j).symbol() + " ");
             }
             System.out.println();
         }
         System.out.println();
+
+        if (ask) {
+            SCANNER.nextLine();
+        }
+        return bs;
     }
 
     public static Board cloneBoard(Board board) {
@@ -197,76 +206,28 @@ public final class Game {
         return new BoardState(Board.of(size, newCells), currentState.score());
     }
 
-    public static BoardState processCascade_old(BoardState state) {
-        List<Match> matches = findMatches(state.board());
-        if (matches.isEmpty()) {
-            return state;
-        }
-
-        BoardState afterRemoval = removeMatches(state, matches);
-        BoardState afterFill = fillEmptySpaces(afterRemoval);
-
-        return processCascade_old(afterFill);
-    }
-
-    /*public static BoardState initializeGame() {
-        return processCascade(fillEmptySpaces(new BoardState(new Board(8), 0)));
-    }*/
-
     public static BoardState initializeGame() {
-        // честно говоря, немного "подзавис" над мыслью как сделать пайплайн в Java:
-        // 1. Builder здесь вообще никаким боком - это паттерн создания объектов, так что fillEmptySpaces и processCascade сюда ну никак не зайдут.
-        // 2. Через перенос fillEmptySpaces и processCascade в BoardState - ну тут как бы мы вроде от всего этого уходим. никакого ооп...
-        // Да и вообще, эти методы никак к классу BoardState не относятся.
-        // Операций типа |> тут нет. Сделал нижеследующий в комментах вариант (чисто чтобы было видно, что читал материал,
-        // т.к. вариант с промежуточными переменными, все же лучше, чем со вложенными скобками)
-
-        /*
-        BoardState bs = new BoardState(new Board(8), 0);
-        bs = Game.fillEmptySpaces(bs);
-        return processCascade(bs);*/
-
-        //ну а рабочий вариант сделал с эмуляцией пайплайна:
         return pipeln(new BoardState(new Board(8), 0),
                 Game::fillEmptySpaces,
                 Game::processCascade
         );
-
-
-        //return processCascade(fillEmptySpaces();
     }
 
+    //все хорошо, вот только нельзя разные типы в таком пайплайне использовать
     @SafeVarargs
-    private static <T> T pipeln(T value, UnaryOperator<T>... steps) {
-        T result = value;
-        for (UnaryOperator<T> step : steps) {
-            result = step.apply(result);
+    private static <T> T pipeln(T value, Function<T, T>... steps) {
+        for (Function<T, T> step : steps) {
+            value = step.apply(value);
         }
-        return result;
+        return value;
     }
 
-    // попробовал реализовать pipe как в примере в курсе, но дальнейшая реализация initializeGame2
-    // получается не очень красивой. Опять куча скобок и никакого праздника...
-    // Хотя у предыдущей реализации через pipeln тоже серьезное ограничение, я могу обработать только один тип для всего
-    // набора функций, менять его нельзя...
     public static <TIn, TOut> TOut pipe(TIn input, Function<TIn, TOut> func) {
         return func.apply(input);
     }
 
-    public static BoardState initializeGame2() {
-
-        //ну а рабочий вариант сделал с эмуляцией пайплайна:
-        return pipe(new BoardState(new Board(8), 0),
-                state -> pipe(fillEmptySpaces(state),
-                Game::processCascade)
-        );
-
-
-        //return processCascade(fillEmptySpaces();
-    }
-
     // компактнее не получается.
-    public static BoardState processCascade(BoardState state) {
+    public static BoardState processCascade_old(BoardState state) {
         List<Match> matches = findMatches(state.board());
         if (matches.isEmpty()) {
             return state;
@@ -277,7 +238,23 @@ public final class Game {
                 Game::fillEmptySpaces
         );
 
-        return processCascade(bs);
+        return processCascade_old(bs);
+    }
+
+    public static BoardState processCascade(BoardState state) {
+        return findMatches(state.board()).size() == 0 ? state : cascadePipeline(state);
+    }
+
+    public static BoardState cascadePipeline(BoardState state) {
+        boolean debug = true;
+        return pipeln(
+                state,
+                bs -> removeMatches(bs, findMatches(bs.board())),
+                bs -> draw(bs, debug),
+                Game::fillEmptySpaces,
+                bs -> draw(bs, debug),
+                Game::processCascade
+        );
     }
 
 }
